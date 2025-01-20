@@ -9,20 +9,41 @@ namespace MyFirstProgram.UI;
 public class UI
 {
 
-    internal void ShowMainMenu(string userName)
+    internal void ShowMainDialog(string userName)
     {
         DifficultyLevel level = DifficultyLevel.Easy;
         GamesDatabase gamesDatabase = new();
         var random = new Random();
 
+        int gameNumber = 0;
+        int gameWins = 0;
+
         while (true)
         {
             Console.Clear();
 
-            Console.WriteLine("-------------------------------------------------------------------");
-            Console.WriteLine($"Current Player: {userName} - Diffculty Level: {level}");
-            Console.WriteLine("-------------------------------------------------------------------");
-            Console.WriteLine("\n");
+            //
+            // Header
+            //
+
+            var table = new Table();
+
+            table.Title = new TableTitle($"[bold]MathGame - Round {(gameNumber+1)}[/]");
+            
+            table.AddColumn("").AddColumns("");
+            
+            table.AddRow($" Current Player: [yellow]{userName}[/]",$" Diffculty Level: [yellow]{level}[/]");
+
+            if (gameNumber > 0)
+            {
+                table.AddRow($" Games Won: [yellow]{gameNumber}[/]",$" Games Lost: [red]{gameNumber-gameWins}[/]");
+            }
+
+            table.Width = 80;
+            table.HideHeaders();
+            table.Border(TableBorder.Rounded);
+
+            AnsiConsole.Write(table);
 
             //
             // Menu
@@ -30,10 +51,10 @@ public class UI
 
             var enumToFriendlyString = Enum.GetValues<GameOptions>()
                 .ToDictionary(e => e.ToFriendlyString(), e => e);
-            
+
             var choice = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
-                            .Title("[yellow]What do you want to do?[/]")
+                            .Title("[yellow]Select option:[/]")
                             .AddChoices(enumToFriendlyString.Keys)
             );
 
@@ -53,7 +74,7 @@ public class UI
 
                 ShowGameHistory(gamesDatabase);
 
-                AnsiConsole.MarkupLine("[blue]Pleas Enter to continue...[/]");
+                AnsiConsole.MarkupLine("[blue]Please Enter to continue...[/]");
                 Console.ReadKey();
                 continue;
             }
@@ -91,11 +112,11 @@ public class UI
             int? result = null;
 
             (int firstNumber, int secondNumber) = GetRandomNumbers(selectedOption, level, random);
-            
+
             try
             {
 
-                switch(selectedOption)
+                switch (selectedOption)
                 {
                     case GameOptions.AdditionGame:
                         result = checked(firstNumber + secondNumber);
@@ -116,10 +137,10 @@ public class UI
                     default:
                         AnsiConsole.MarkupLine($"[red]Internal Errror - Game option '{selectedOption.ToString()}' not implemented![/]");
                         Console.ReadKey(true); // Wait for a key press
-                        break;                            
+                        break;
                 }
             }
-            catch(OverflowException)
+            catch (OverflowException)
             {
                 AnsiConsole.MarkupLine("[red]Result exceeded the maximum or minumum value of an integer! Press any key to continue...[/]");
                 Console.ReadKey(true); // Wait for a key press
@@ -149,7 +170,10 @@ public class UI
 
             if (result != null)
             {
-                SaveAndDisplayResult(userName, gamesDatabase, selectedOption, gamePlayed, 
+                gameNumber++;
+                gameWins += (result == response) ? 1 : 0;
+
+                SaveAndDisplayResult(userName, gamesDatabase, selectedOption, gamePlayed + $" = {result} ",
                     (result == response ? GameResult.Correct : GameResult.Incorrect));
 
                 AnsiConsole.Markup("[blue]Press any key to continue...[/]");
@@ -187,7 +211,7 @@ public class UI
             $"[cyan]{userName}[/]",
             $"[green]{selectedOption}[/]",
             gamePlayed,
-            outcome.ToString() 
+            (outcome == GameResult.Correct ? "[blue]" : "[red]") + $"{outcome.ToString()}[/]"
             );
 
         AnsiConsole.Write(table);
@@ -198,29 +222,29 @@ public class UI
     //
     private void ShowGameHistory(GamesDatabase gamesDatabase)
     {
-            var table = new Table();
-            table.Border(TableBorder.Rounded);
+        var table = new Table();
+        table.Border(TableBorder.Rounded);
 
-            table.AddColumn("[yellow]ID[/]");
-            table.AddColumn("[yellow]Player Name[/]");
-            table.AddColumn("[yellow]Game Type[/]");
-            table.AddColumn("[yellow]Date[/]");
-            table.AddColumn("[yellow]Play[/]");
-            table.AddColumn("[yellow]Result[/]");
+        table.AddColumn("[yellow]ID[/]");
+        table.AddColumn("[yellow]Player Name[/]");
+        table.AddColumn("[yellow]Game Type[/]");
+        table.AddColumn("[yellow]Date[/]");
+        table.AddColumn("[yellow]Play[/]");
+        table.AddColumn("[yellow]Result[/]");
 
-            foreach (var game in gamesDatabase.GamesHistory)
-            {
-                table.AddRow(
-                    game.Id.ToString(),
-                    $"[cyan]{game.PlayerName}[/]",
-                    $"[green]{game.GameType}[/]",
-                    game.GameDate.ToString(),
-                    game.GamePlay,
-                    game.GameResult.ToString()
-                    );
-            }
+        foreach (var game in gamesDatabase.GamesHistory)
+        {
+            table.AddRow(
+                game.Id.ToString(),
+                $"[cyan]{game.PlayerName}[/]",
+                $"[green]{game.GameType}[/]",
+                game.GameDate.ToString(),
+                game.GamePlay,
+                (game.GameResult == GameResult.Correct ? "[blue]" : "[red]") + $"{game.GameResult.ToString()}[/]"
+                );
+        }
 
-            AnsiConsole.Write(table);
+        AnsiConsole.Write(table);
     }
 
     //
@@ -230,31 +254,29 @@ public class UI
 
     private (int firstNumber, int secondNumber) GetRandomNumbers(GameOptions selectedOption, DifficultyLevel level, Random random)
     {
-        AnsiConsole.MarkupLine($"[yellow]{selectedOption.ToString()}[/]");
+        AnsiConsole.MarkupLine($"  Game: [bold]{selectedOption.ToString()}[/]");
 
-        int firstNumber;
-        int secondNumber;
+        // Easy: 1-10, Medium: 10-100, Hard: 100-1000
 
-        var requirementsmet = true;
+        int firstNumber = random.Next((int)Math.Pow(10, (int)level - 1), 1 + (int)Math.Pow(10, (int)level));
+        int secondNumber = random.Next((int)Math.Pow(10, (int)level - 1), 1 + (int)Math.Pow(10, (int)level));
 
-        //
-        // Loop until we have a valid set of numbers
-        //
-
-        do
+        if (selectedOption == GameOptions.DivisionGame)
         {
-            firstNumber = random.Next(1, 100^(int)level);
-            secondNumber = random.Next(1, selectedOption == GameOptions.DivisionGame ? 100 : 100^(int)level);
+            // 1. Diviser cannot be > 100
+            // 2. Division result must be whole number
 
-            if (selectedOption == GameOptions.DivisionGame && firstNumber % secondNumber != 0)
+            secondNumber = Math.Min(secondNumber, 100);
+
+            if (firstNumber % secondNumber != 0)
             {
-                requirementsmet = false;
+                // instead of looping, we can just multiply the divisor by a random number, to get a whole number divisible by it
+                firstNumber = secondNumber * random.Next(1, 1 + (int)Math.Pow(10, (int)level));
             }
         }
-        while (!requirementsmet);
-        
+
         return (firstNumber, secondNumber);
-        
+
     }
 }
 

@@ -9,26 +9,36 @@
 // 4. You should record previous games in a List and there should be an option in the menu for the user to visualize a history of previous games.
 // 5. You don't need to record results on a database. Once the program is closed the results will be deleted.
 //
+
 Console.Clear();
 
 Console.WriteLine("-------------------------------------------------------------------");
-Console.WriteLine("Welcome to the Math Game! (Version 1.0)");
+Console.WriteLine("Welcome New User to the Math Game!");
 Console.WriteLine("-------------------------------------------------------------------\n");   
 
-Console.Write("Please enter your name: ");
+//
+// Simple Login/Authorization 
+//
+
+Console.Write("Please enter your name to begin: ");
 string? userName = Console.ReadLine();
 
 if (string.IsNullOrEmpty(userName))
 {
     Console.WriteLine("You must enter a name to play!");
-    return;
+    Environment.Exit(-1);;
 }
 
+//
+// Main Dialog loop
+//
+
 var UserInterface = new UI();
-UserInterface.ShowMainMenu(userName);
+UserInterface.ShowMainDialog(userName);
 
 //
 // End of Programme
 //
 
+Environment.Exit(0);
 
